@@ -10,7 +10,8 @@
                  [reagent "0.5.0"]]
 
   :plugins [[lein-cljsbuild "1.1.1"]
-            [lein-figwheel "0.5.0"]]
+            [lein-figwheel "0.5.0"]
+            [lein-doo "0.1.4"]]
 
   :source-paths ["src"]
 
@@ -35,13 +36,18 @@
                 :compiler {:output-to "resources/public/js/compiled/sudoku_solver.js"
                            :main sudoku-solver.core
                            :optimizations :advanced
-                           :pretty-print false}}]}
+                           :pretty-print false}}
+               {:id "test"
+                 :source-paths ["src" "test"]
+                 :compiler {:main 'sudoku-solver.runner
+                            :output-to "resources/public/js/compiled/sudoku_solver_test.js"
+                            :optimizations :none}}]}
 
   :figwheel {;; :http-server-root "public" ;; default and assumes "resources"
              ;; :server-port 3449 ;; default
              ;; :server-ip "127.0.0.1"
 
-             :css-dirs ["resources/public/css"] ;; watch and update CSS
+             :css-dirs ["resources/public/css"]}) ;; watch and update CSS
 
              ;; Start an nREPL server into the running figwheel process
              ;; :nrepl-port 7888
@@ -66,4 +72,3 @@
 
              ;; to configure a different figwheel logfile path
              ;; :server-logfile "tmp/logs/figwheel-logfile.log"
-             })
