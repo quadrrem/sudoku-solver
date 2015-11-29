@@ -5,17 +5,17 @@
 
 (def sudoku-channel (chan 10))
 
-(defn solve-sudoku [board]
-  (go
-    (put!
-      sudoku-channel
-      (rules/solve board))))
-
 (defn receive-sudoku [state]
-  (go-loop []
+  (go
     (let [board (<! sudoku-channel)]
       (state board
              (if (rules/is-solved? board)
                 :solved
-                :failed))
-      (recur))))
+                :failed)))))
+
+(defn solve-sudoku [board state]
+  (go
+    (put!
+      sudoku-channel
+      (rules/solve board)
+      (fn [] (receive-sudoku state)))))

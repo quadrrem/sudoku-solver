@@ -1,76 +1,75 @@
 (ns ^:figwheel-always sudoku-solver.rules)
 
-(defn check-row [board v x y dx dy]
+(defn check-row [board v y x dy dx]
   (not-any? true?
           (for [i (range (count board))]
             (= (get-in board [(+ (* dy i) (* dx y))
                               (+ (* dx i) (* dy x))])
                v))))
 
-(defn check-row-horizontal [board v x y]
-  (check-row board v x y 1 0))
+(defn check-row-horizontal [board v y x]
+  (check-row board v y x 0 1))
 
-(defn check-row-vertical [board v x y]
-  (check-row board v x y 0 1))
+(defn check-row-vertical [board v y x]
+  (check-row board v y x 1 0))
 
-(defn check-square [board v x y]
+(defn check-square [board v y x]
   (let [r (.sqrt js/Math (count board))
-        qx (quot x r)
-        qy (quot y r)]
+        qy (quot y r)
+        qx (quot x r)]
     (not-any? true?
-            (for [i (range (* qx r) (* (+ qx 1) r))
-                  j (range (* qy r) (* (+ qy 1) r))]
-              (= (get-in board [j i])
+            (for [ny (range (* qy r) (* (+ qy 1) r))
+                  nx (range (* qx r) (* (+ qx 1) r))]
+              (= (get-in board [ny nx])
                  v)))))
 
-(defn is-allowed? [board v x y]
-  (and (check-square board v x y)
-       (check-row-horizontal board v x y)
-       (check-row-vertical board v x y)))
+(defn is-allowed? [board v y x]
+  (and (check-square board v y x)
+       (check-row-horizontal board v y x)
+       (check-row-vertical board v y x)))
 
-(defn get-allowed-positions [board v x y dx dy]
+(defn get-allowed-positions [board v y x dy dx]
   (filter
     #(not (nil? %))
     (for [i (range (count board))]
       (let [ny (+ (* dy i) (* dx y))
             nx (+ (* dx i) (* dy x))]
           (when (and (= 0 (get-in board [ny nx]))
-                     (is-allowed? board v nx ny))
+                     (is-allowed? board v ny nx))
             [ny nx])))))
 
-(defn get-allowed-positions-horizontal [board v x y]
-  (get-allowed-positions board v x y 1 0))
+(defn get-allowed-positions-horizontal [board v y x]
+  (get-allowed-positions board v y x 0 1))
 
-(defn get-allowed-positions-vertical [board v x y]
-  (get-allowed-positions board v x y 0 1))
+(defn get-allowed-positions-vertical [board v y x]
+  (get-allowed-positions board v y x 1 0))
 
-(defn get-allowed-positions-square [board v x y]
+(defn get-allowed-positions-square [board v y x]
   (filter
     #(not (nil? %))
     (let [r (.sqrt js/Math (count board))
-          qx (quot x r)
-          qy (quot y r)]
-        (for [nx (range (* qx r) (* (+ qx 1) r))
-              ny (range (* qy r) (* (+ qy 1) r))]
+          qy (quot y r)
+          qx (quot x r)]
+        (for [ny (range (* qy r) (* (+ qy 1) r))
+              nx (range (* qx r) (* (+ qx 1) r))]
             (when (and (= 0 (get-in board [ny nx]))
-                       (is-allowed? board v nx ny))
+                       (is-allowed? board v ny nx))
                  [ny nx])))))
 
-(defn get-allowed-values [board x y]
-  (filter #(is-allowed? board % x y) (range 1 (+ (count board) 1))))
+(defn get-allowed-values [board y x]
+  (filter #(is-allowed? board % y x) (range 1 (+ (count board) 1))))
 
-(defn only-possible-position? [board v x y]
+(defn only-possible-position? [board v y x]
   (some #(and (= (count %) 1)
               (= (first %) [y x]))
-    (vector (get-allowed-positions-square board v x y)
-            (get-allowed-positions-vertical board v x y)
-            (get-allowed-positions-horizontal board v x y))))
+    (vector (get-allowed-positions-square board v y x)
+            (get-allowed-positions-vertical board v y x)
+            (get-allowed-positions-horizontal board v y x))))
 
-(defn get-only-possible-value [board vs x y]
+(defn get-only-possible-value [board vs y x]
   (let [v (filter
-            #(only-possible-position? board % x y)
+            #(only-possible-position? board % y x)
             vs)]
-    ;(println y " " x " " v)
     (if (seq v)
         (first v)
         0)))
@@ -79,10 +78,10 @@
   (reduce-kv
     (fn [r x v]
       (if (= 0 v)
-        (let [vs (get-allowed-values board x y)]
+        (let [vs (get-allowed-values board y x)]
           (if (= (count vs) 1)
             (conj r (first vs))
-            (conj r (get-only-possible-value board vs x y))))
+            (conj r (get-only-possible-value board vs y x))))
         (conj r v)))
    []
    row))

@@ -1,10 +1,9 @@
 (ns ^:figwheel-always sudoku-solver.core
   (:require [reagent.core :as reagent :refer [atom flush]]
-            [sudoku-solver.sync :as sync]))
+            [sudoku-solver.sync :as sync]
+            [sudoku-solver.rules :as r]))
 
 (enable-console-print!)
-
-;; define your app data so that it doesn't get over-written on reload
 
 (def sudoku-size 9)
 
@@ -26,19 +25,36 @@
                           :progress :new
                           :board (new-board sudoku-size)}))
 
+(defn change-value [y x]
+  (when (= (:progress @app-state) :new)
+    (let [board (:board @app-state)
+          v (get-in board [y x])
+          vs (filter #(> % v) (r/get-allowed-values board y x))]
+      (if (seq vs)
+       (swap! app-state assoc-in [:board y x] (first vs))
+       (swap! app-state assoc-in [:board y x] 0)))))
 
 (defn blank [y x]
   [:rect {:width 0.9
           :height 0.9
           :x x
           :y y
-          :fill "grey"}])
+          :fill "grey"
+          :on-click (fn blank-clik []
+                      (change-value y x))}])
 
 (defn number [v y x]
   [:text {:x (+ 0.3 x)
           :y (+ 0.7 y)
-          :font-size 0.6}
+          :font-size 0.6
+          :on-click (fn number-clik []
+                      (change-value y x))}
     v])
+
+(defn create-tiles [c]
+  (reduce #(assoc %1 %2 (partial number %2)) (hash-map) (range 1 (+ c 1))))
+
+(def tiles (create-tiles sudoku-size))
 
 (defn swap-board
   ([board] (swap-board board :new))
@@ -62,7 +78,7 @@
       [:button {:on-click
                     (fn solve-click [e]
                       (swap! app-state assoc :progress :solving)
-                      (sync/solve-sudoku (:board @app-state)))}
+                      (sync/solve-sudoku (:board @app-state) swap-board))}
           "Solve!"]
       [:button {:on-click
                     (fn example-click [e]
@@ -79,12 +95,8 @@
           (let [v (get-in @app-state [:board y x])]
             (if (= v 0)
               [blank y x]
-              [number v y x]))))])
+              [(get tiles v) y x]))))])
 
-(defn init []
-  (sync/receive-sudoku swap-board))
-
-(init)
 (reagent/render-component [sudoku]
                           (. js/document (getElementById "app")))
 
